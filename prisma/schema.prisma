@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model BodyWeight {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  personId  String?   @map("person_id") @db.Uuid
+  date      DateTime  @db.Date
+  weight    Decimal   @db.Decimal
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  person Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@map("body_weight")
+}
+
+model Exercise {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  muscleGroupId String?   @map("muscle_group_id") @db.Uuid
+  createdAt     DateTime? @default(now()) @map("created_at")
+
+  muscleGroup  MuscleGroup?      @relation(fields: [muscleGroupId], references: [id])
+  workoutSets  WorkoutSet[]
+  routineLinks RoutineExercise[]
+
+  @@map("exercises")
+}
+
+model MuscleGroup {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  exercises Exercise[]
+
+  @@map("group_exercises")
+}
+
+model Person {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  routineId String?  @map("routine_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  routine     Routine[]
+  bodyWeights BodyWeight[]
+  workoutSets WorkoutSet[]
+
+  @@map("persons")
+}
+
+model WorkoutSet {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  date       DateTime  @db.Date
+  week       Int
+  personId   String?   @map("person_id") @db.Uuid
+  exerciseId String?   @map("exercise_id") @db.Uuid
+  weight     Decimal   @db.Decimal
+  unit       String?   @default("lb")
+  setNumber  Int       @map("set_number")
+  reps       Int
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  person   Person?   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("workout_sets")
+}
+
+model Routine {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  personId  String    @map("person_id") @db.Uuid
+  name      String
+  createdAt DateTime? @default(now()) @map("created_at")
+
+  person Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  days   RoutineDay[]
+
+  @@map("routines")
+}
+
+model RoutineDay {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  routineId String @map("routine_id") @db.Uuid
+  dayOfWeek Int    @map("day_of_week")
+  name      String
+
+  routine   Routine           @relation(fields: [routineId], references: [id])
+  exercises RoutineExercise[]
+
+  @@unique([routineId, dayOfWeek])
+  @@map("routine_days")
+}
+
+model RoutineExercise {
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  routineDayId String @map("routine_day_id") @db.Uuid
+  exerciseId   String @map("exercise_id") @db.Uuid
+  order        Int
+
+  routineDay RoutineDay @relation(fields: [routineDayId], references: [id], onDelete: Cascade)
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("routine_exercises")
+}
